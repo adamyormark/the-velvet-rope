@@ -26,6 +26,19 @@ export default function ProfilesPage() {
     }
   }, [state.rawAttendees]);
 
+  function createFallbackProfiles(attendees: typeof state.rawAttendees): EnrichedProfile[] {
+    return attendees.map((a) => ({
+      ...a,
+      parsedSkills: a.skills.split(';').map((s) => s.trim()).filter(Boolean),
+      parsedInterests: a.interests.split(';').map((s) => s.trim()).filter(Boolean),
+      parsedEventHistory: a.eventHistory.split(';').map((s) => s.trim()).filter(Boolean),
+      avatarUrl: getAvatarUrl(a.email),
+      profileSummary: a.bio,
+      uniqueValue: `${a.title} at ${a.company} with ${a.yearsExperience} years in ${a.industry}`,
+      potentialContributions: a.skills.split(';').slice(0, 3).map((s) => s.trim()),
+    }));
+  }
+
   async function enrichProfiles() {
     setEnriching(true);
     try {
@@ -35,23 +48,16 @@ export default function ProfilesPage() {
         body: JSON.stringify({ attendees: state.rawAttendees }),
       });
       const data = await res.json();
-      if (data.enrichedProfiles) {
+      if (data.enrichedProfiles && data.enrichedProfiles.length > 0) {
         dispatch({ type: 'SET_ENRICHED_PROFILES', payload: data.enrichedProfiles });
+      } else {
+        // API returned no profiles (e.g. missing API key) — use fallback
+        dispatch({ type: 'SET_ENRICHED_PROFILES', payload: createFallbackProfiles(state.rawAttendees) });
       }
     } catch (e) {
       console.error('Failed to enrich profiles:', e);
       // Fallback: create basic enriched profiles without Claude
-      const fallback: EnrichedProfile[] = state.rawAttendees.map((a) => ({
-        ...a,
-        parsedSkills: a.skills.split(';').map((s) => s.trim()).filter(Boolean),
-        parsedInterests: a.interests.split(';').map((s) => s.trim()).filter(Boolean),
-        parsedEventHistory: a.eventHistory.split(';').map((s) => s.trim()).filter(Boolean),
-        avatarUrl: getAvatarUrl(a.email),
-        profileSummary: a.bio,
-        uniqueValue: `${a.title} at ${a.company} with ${a.yearsExperience} years in ${a.industry}`,
-        potentialContributions: a.skills.split(';').slice(0, 3).map((s) => s.trim()),
-      }));
-      dispatch({ type: 'SET_ENRICHED_PROFILES', payload: fallback });
+      dispatch({ type: 'SET_ENRICHED_PROFILES', payload: createFallbackProfiles(state.rawAttendees) });
     }
     setEnriching(false);
   }

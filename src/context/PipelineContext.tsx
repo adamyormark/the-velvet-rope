@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
 import type {
   PipelineState, PipelineStage, RawAttendee, EnrichedProfile,
   AttendeePitch, BiometricResult, GuestListEntry, VenueConfig,
@@ -21,6 +21,21 @@ const initialState: PipelineState = {
   simulationResult: null,
 };
 
+function loadFromStorage(): PipelineState {
+  if (typeof window === 'undefined') return initialState;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return initialState;
+}
+
+function saveToStorage(state: PipelineState) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {}
+}
+
 type Action =
   | { type: 'SET_RAW_ATTENDEES'; payload: RawAttendee[] }
   | { type: 'SET_ENRICHED_PROFILES'; payload: EnrichedProfile[] }
@@ -36,34 +51,50 @@ type Action =
   | { type: 'RESET' };
 
 function reducer(state: PipelineState, action: Action): PipelineState {
+  let next: PipelineState;
   switch (action.type) {
     case 'SET_RAW_ATTENDEES':
-      return { ...state, rawAttendees: action.payload };
+      next = { ...state, rawAttendees: action.payload };
+      break;
     case 'SET_ENRICHED_PROFILES':
-      return { ...state, enrichedProfiles: action.payload };
+      next = { ...state, enrichedProfiles: action.payload };
+      break;
     case 'SET_PITCHES':
-      return { ...state, pitches: action.payload };
+      next = { ...state, pitches: action.payload };
+      break;
     case 'ADD_BIOMETRIC_RESULT':
-      return { ...state, biometricResults: [...state.biometricResults, action.payload] };
+      next = { ...state, biometricResults: [...state.biometricResults, action.payload] };
+      break;
     case 'SET_BIOMETRIC_RESULTS':
-      return { ...state, biometricResults: action.payload };
+      next = { ...state, biometricResults: action.payload };
+      break;
     case 'SET_GUEST_LIST':
-      return { ...state, guestList: action.payload };
+      next = { ...state, guestList: action.payload };
+      break;
     case 'SET_VENUE_CONFIG':
-      return { ...state, venueConfig: action.payload };
+      next = { ...state, venueConfig: action.payload };
+      break;
     case 'SET_DJ_CONFIG':
-      return { ...state, djConfig: action.payload };
+      next = { ...state, djConfig: action.payload };
+      break;
     case 'SET_SIMULATION_RESULT':
-      return { ...state, simulationResult: action.payload };
+      next = { ...state, simulationResult: action.payload };
+      break;
     case 'SET_STAGE':
-      return { ...state, currentStage: action.payload };
+      next = { ...state, currentStage: action.payload };
+      break;
     case 'LOAD_STATE':
-      return action.payload;
+      next = action.payload;
+      break;
     case 'RESET':
-      return initialState;
+      next = initialState;
+      break;
     default:
-      return state;
+      next = state;
   }
+  // Persist synchronously inside the reducer so it's saved before navigation
+  saveToStorage(next);
+  return next;
 }
 
 interface PipelineContextValue {
@@ -74,24 +105,7 @@ interface PipelineContextValue {
 const PipelineContext = createContext<PipelineContextValue | null>(null);
 
 export function PipelineProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        dispatch({ type: 'LOAD_STATE', payload: JSON.parse(saved) });
-      }
-    } catch {}
-  }, []);
-
-  // Persist to localStorage on change
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {}
-  }, [state]);
+  const [state, dispatch] = useReducer(reducer, initialState, loadFromStorage);
 
   return (
     <PipelineContext.Provider value={{ state, dispatch }}>
