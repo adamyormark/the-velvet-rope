@@ -344,10 +344,10 @@ export default function BouncerPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
                 className={`text-2xl font-semibold uppercase tracking-widest ${
-                  vettedScore >= 60 ? 'text-park' : 'text-coral'
+                  vettedScore >= 70 ? 'text-park' : vettedScore >= 40 ? 'text-golden' : 'text-coral'
                 }`}
               >
-                {vettedScore >= 60 ? 'VETTED' : 'REJECTED'}
+                {vettedScore >= 70 ? 'HIGH YES-NESS' : vettedScore >= 40 ? 'MODERATE YES-NESS' : 'LOW YES-NESS'}
               </motion.p>
               <motion.div
                 initial={{ width: '0%' }}
