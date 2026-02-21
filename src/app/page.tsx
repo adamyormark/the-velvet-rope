@@ -33,13 +33,15 @@ export default function HomePage() {
     }
   }, [dispatch, router]);
 
+  const DEMO_APPLICANT_COUNT = 15;
+
   const loadSampleData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       const res = await fetch('/sample-crm-data.csv');
       const text = await res.text();
-      const attendees = parseCsv(text);
+      const attendees = parseCsv(text).slice(0, DEMO_APPLICANT_COUNT);
       dispatch({ type: 'SET_RAW_ATTENDEES', payload: attendees });
       dispatch({ type: 'SET_STAGE', payload: 'profiles' });
       router.push('/profiles');
@@ -117,7 +119,7 @@ export default function HomePage() {
                   onClick={loadSampleData}
                   className="text-white/30 hover:text-golden/60 text-sm transition-colors"
                 >
-                  or load 25 sample applicants →
+                  or load {DEMO_APPLICANT_COUNT} sample applicants →
                 </button>
               </div>
             </>

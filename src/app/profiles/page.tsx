@@ -62,15 +62,11 @@ export default function ProfilesPage() {
     setEnriching(false);
   }
 
-  // Limit to first 2 for demo purposes
-  const DEMO_LIMIT = 2;
   const profiles = state.enrichedProfiles.length > 0
-    ? state.enrichedProfiles.slice(0, DEMO_LIMIT)
+    ? state.enrichedProfiles
     : [];
 
   function goToPitches() {
-    // Only pass limited profiles forward for demo
-    dispatch({ type: 'SET_ENRICHED_PROFILES', payload: profiles });
     dispatch({ type: 'SET_STAGE', payload: 'pitches' });
     router.push('/pitches');
   }

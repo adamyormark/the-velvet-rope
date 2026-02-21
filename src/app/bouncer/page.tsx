@@ -33,12 +33,15 @@ export default function BouncerPage() {
   const [showVettedOverlay, setShowVettedOverlay] = useState(false);
   const [vettedScore, setVettedScore] = useState(0);
   const detectionInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const profiles = state.enrichedProfiles;
+  const LIVE_VET_COUNT = 2; // Only vet this many live, pre-rate the rest
+  const allProfiles = state.enrichedProfiles;
+  const profiles = allProfiles.slice(0, LIVE_VET_COUNT); // Only these get live vetting
   const pitches = state.pitches;
 
   useEffect(() => {
-    if (profiles.length === 0 || pitches.length === 0) {
+    if (allProfiles.length === 0 || pitches.length === 0) {
       router.push('/');
       return;
     }
@@ -130,7 +133,7 @@ export default function BouncerPage() {
     });
   }
 
-  function startPitch(index: number) {
+  async function startPitch(index: number) {
     const pitch = pitches.find((p) => p.attendeeId === profiles[index]?.id);
     if (!pitch) return;
 
@@ -144,52 +147,58 @@ export default function BouncerPage() {
 
     startDetectionLoop();
 
-    // Use Speech Synthesis with upgraded voice
-    const utterance = new SpeechSynthesisUtterance(pitch.pitchText);
-    utterance.rate = 0.92;
-    utterance.pitch = 1.0 + Math.random() * 0.2;
+    // Try OpenAI TTS first, fall back to Web Speech API
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: pitch.pitchText, voice: 'onyx' }),
+      });
 
-    // Select a premium voice if available
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoices = [
-      'Samantha', 'Daniel', 'Karen', 'Moira', 'Alex', 'Tessa',
-      'Google UK English Male', 'Google UK English Female',
-      'Google US English', 'Microsoft Zira', 'Microsoft David',
-    ];
-    const premiumVoice = voices.find((v) =>
-      preferredVoices.some((name) => v.name.includes(name))
-    ) || voices.find((v) => v.lang.startsWith('en') && !v.name.includes('compact'));
-    if (premiumVoice) utterance.voice = premiumVoice;
+      if (!res.ok) throw new Error('TTS API failed');
 
-    // Track word progress
-    let wordIdx = 0;
-    utterance.onboundary = (event) => {
-      if (event.name === 'word') {
-        wordIdx++;
-        setCurrentWordIndex(wordIdx);
-      }
-    };
+      const audioBlob = await res.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
 
-    utterance.onend = () => {
-      finishPitch(index);
-    };
+      // Simulate word-by-word progress based on audio duration
+      audio.onloadedmetadata = () => {
+        const duration = audio.duration * 1000; // ms
+        const wordInterval = duration / words.length;
+        let wordIdx = 0;
+        const wordTimer = setInterval(() => {
+          wordIdx++;
+          if (wordIdx < words.length) {
+            setCurrentWordIndex(wordIdx);
+          } else {
+            clearInterval(wordTimer);
+          }
+        }, wordInterval);
 
-    utterance.onerror = () => {
-      // TTS failed, simulate timing
-      const duration = words.length * 200;
+        audio.onended = () => {
+          clearInterval(wordTimer);
+          setCurrentWordIndex(words.length);
+          URL.revokeObjectURL(audioUrl);
+          finishPitch(index);
+        };
+      };
+
+      audio.play();
+    } catch {
+      // Fallback: simulate timing with word progression
+      console.warn('OpenAI TTS unavailable, using timed fallback');
+      const estimatedDuration = words.length * 400; // ~400ms per word for natural pace
       let elapsed = 0;
       const wordTimer = setInterval(() => {
         elapsed += 200;
-        setCurrentWordIndex(Math.floor((elapsed / duration) * words.length));
-        if (elapsed >= duration) {
+        setCurrentWordIndex(Math.floor((elapsed / estimatedDuration) * words.length));
+        if (elapsed >= estimatedDuration) {
           clearInterval(wordTimer);
           finishPitch(index);
         }
       }, 200);
-    };
-
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+    }
   }
 
   function finishPitch(index: number) {
@@ -220,6 +229,21 @@ export default function BouncerPage() {
       if (index + 1 < profiles.length) {
         setCurrentIndex(index + 1);
       } else {
+        // Generate pre-rated scores for remaining profiles
+        const preRated = allProfiles.slice(LIVE_VET_COUNT);
+        for (const p of preRated) {
+          const preScore = 30 + Math.floor(Math.random() * 55); // 30-84
+          const preResult: BiometricResult = {
+            attendeeId: p.id,
+            snapshots: [],
+            yesnessScore: preScore,
+            peakPositive: (preScore / 100) * 0.8,
+            peakNegative: -((100 - preScore) / 100) * 0.3,
+            engagementLevel: 40 + Math.floor(Math.random() * 40),
+            durationMs: 0,
+          };
+          dispatch({ type: 'ADD_BIOMETRIC_RESULT', payload: preResult });
+        }
         setCompleted(true);
       }
     }, 3000);
@@ -251,7 +275,7 @@ export default function BouncerPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => { window.speechSynthesis.cancel(); stopWebcam(); router.push('/pitches'); }}
+            onClick={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } stopWebcam(); router.push('/pitches'); }}
             className="px-3 py-1.5 bg-white/5 text-white/40 rounded-full hover:bg-white/10 transition-colors text-sm"
           >
             ← Back
@@ -261,7 +285,7 @@ export default function BouncerPage() {
             <p className="text-white/40 mt-1">
               {completed
                 ? 'Vetting complete.'
-                : `Vetting applicant ${currentIndex + 1} of ${profiles.length}`
+                : `Vetting applicant ${currentIndex + 1} of ${profiles.length} (${allProfiles.length - LIVE_VET_COUNT} pre-rated)`
               }
             </p>
           </div>
@@ -484,8 +508,8 @@ export default function BouncerPage() {
         >
           <h2 className="text-2xl font-bold gradient-text mb-2">Vetting Complete</h2>
           <p className="text-white/40">
-            {state.biometricResults.length} applicants processed.
-            Average yes-ness: {Math.round(state.biometricResults.reduce((sum, r) => sum + r.yesnessScore, 0) / state.biometricResults.length)}%
+            {LIVE_VET_COUNT} applicants vetted live, {allProfiles.length - LIVE_VET_COUNT} pre-rated.
+            {' '}Average yes-ness: {Math.round(state.biometricResults.reduce((sum, r) => sum + r.yesnessScore, 0) / Math.max(1, state.biometricResults.length))}%
           </p>
         </motion.div>
       )}
