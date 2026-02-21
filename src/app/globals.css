@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0B1622;
+  --color-charcoal: #1A1A2E;
+  --color-plum: #1B1032;
+  --color-linen: #FAF5EF;
+  --color-pearl: #F2EDE6;
+  --color-oyster: #E8E0D5;
+  --color-golden: #F5A623;
+  --color-sunset: #E8853A;
+  --color-tangerine: #FF9A5C;
+  --color-apricot: #FFCBA4;
+  --color-amber: #C96B20;
+  --color-terracotta: #C75B3A;
+  --color-coral: #E07256;
+  --color-sky: #7BBFEA;
+  --color-river: #5BA3D9;
+  --color-haze: #B8D9F0;
+  --color-park: #5B9A5F;
+  --color-highline: #7DB87F;
+  --color-fern: #A8D4A2;
+}
+
+body {
+  background: var(--color-navy);
+  color: var(--color-linen);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #FF6B35, #FFB088, #48CAE4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.yesness-glow {
+  box-shadow: 0 0 40px rgba(245, 166, 35, 0.2), 0 0 80px rgba(245, 166, 35, 0.1);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
