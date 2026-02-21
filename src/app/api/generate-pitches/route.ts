@@ -4,9 +4,30 @@ import type { EnrichedProfile, AttendeePitch } from '@/lib/types';
 
 const TONES = ['confident', 'humble', 'humorous', 'passionate', 'analytical'] as const;
 
+function createFallbackPitches(profiles: EnrichedProfile[]): AttendeePitch[] {
+  return profiles.map((p, idx) => ({
+    attendeeId: p.id,
+    pitchText: `Look, I know you've got a list, but hear me out. I'm ${p.firstName} ${p.lastName}, and I've spent ${p.yearsExperience} years in ${p.industry}. I built ${p.company} from the ground up. My skills in ${p.parsedSkills.slice(0, 2).join(' and ')} aren't just resume padding — they're battle scars. Let me in and I promise this event won't be the same without me. I didn't come all this way to stand outside.`,
+    pitchTone: TONES[idx % TONES.length],
+    keyArguments: [
+      p.parsedSkills[0] || 'deep expertise',
+      p.uniqueValue || `${p.title} at ${p.company}`,
+      `${p.yearsExperience} years of expertise`,
+    ],
+    generatedAt: new Date().toISOString(),
+  }));
+}
+
 export async function POST(request: Request) {
+  let profiles: EnrichedProfile[];
+
   try {
-    const { profiles } = await request.json() as { profiles: EnrichedProfile[] };
+    ({ profiles } = await request.json() as { profiles: EnrichedProfile[] });
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  try {
     const claude = getClaudeClient();
     const pitches: AttendeePitch[] = [];
 
@@ -53,7 +74,7 @@ No other text, just valid JSON.`,
           });
         }
       } catch {
-        // Fallback pitches
+        // Fallback pitches for this batch
         for (const p of batch) {
           pitches.push({
             attendeeId: p.id,
@@ -69,6 +90,7 @@ No other text, just valid JSON.`,
     return NextResponse.json({ pitches });
   } catch (error) {
     console.error('Pitch generation error:', error);
-    return NextResponse.json({ error: 'Failed to generate pitches' }, { status: 500 });
+    // Return fallback pitches when Claude is unavailable
+    return NextResponse.json({ pitches: createFallbackPitches(profiles) });
   }
 }

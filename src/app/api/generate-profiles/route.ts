@@ -3,9 +3,29 @@ import { getClaudeClient } from '@/lib/claude';
 import { getAvatarUrl } from '@/lib/avatar';
 import type { RawAttendee, EnrichedProfile } from '@/lib/types';
 
+function createFallbackProfiles(attendees: RawAttendee[]): EnrichedProfile[] {
+  return attendees.map((a) => ({
+    ...a,
+    parsedSkills: a.skills.split(';').map((s) => s.trim()).filter(Boolean),
+    parsedInterests: a.interests.split(';').map((s) => s.trim()).filter(Boolean),
+    parsedEventHistory: a.eventHistory.split(';').map((s) => s.trim()).filter(Boolean),
+    avatarUrl: getAvatarUrl(a.email),
+    profileSummary: a.bio,
+    uniqueValue: `${a.title} at ${a.company}`,
+    potentialContributions: a.skills.split(';').slice(0, 3).map((s) => s.trim()),
+  }));
+}
+
 export async function POST(request: Request) {
+  let attendees: RawAttendee[];
+
   try {
-    const { attendees } = await request.json() as { attendees: RawAttendee[] };
+    ({ attendees } = await request.json() as { attendees: RawAttendee[] });
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  try {
     const claude = getClaudeClient();
 
     // Process in batches of 5
@@ -64,7 +84,7 @@ Return ONLY valid JSON array, no other text.`,
           });
         }
       } catch {
-        // Fallback: use raw data
+        // Fallback: use raw data for this batch
         for (const attendee of batch) {
           enriched.push({
             ...attendee,
@@ -83,6 +103,7 @@ Return ONLY valid JSON array, no other text.`,
     return NextResponse.json({ enrichedProfiles: enriched });
   } catch (error) {
     console.error('Profile enrichment error:', error);
-    return NextResponse.json({ error: 'Failed to enrich profiles' }, { status: 500 });
+    // Return fallback enriched profiles when Claude is unavailable
+    return NextResponse.json({ enrichedProfiles: createFallbackProfiles(attendees) });
   }
 }

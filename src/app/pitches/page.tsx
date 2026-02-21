@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { usePipeline } from '@/context/PipelineContext';
 import { motion } from 'framer-motion';
 
+const TONES = ['confident', 'humble', 'humorous', 'passionate', 'analytical'] as const;
+
 export default function PitchesPage() {
   const router = useRouter();
   const { state, dispatch } = usePipeline();
@@ -20,6 +22,20 @@ export default function PitchesPage() {
     }
   }, [state.enrichedProfiles]);
 
+  function createFallbackPitches() {
+    return state.enrichedProfiles.map((p, idx) => ({
+      attendeeId: p.id,
+      pitchText: `Look, I know you've got a list, but hear me out. I'm ${p.firstName} ${p.lastName}, and I've spent ${p.yearsExperience} years in ${p.industry}. I built ${p.company} from the ground up. My skills in ${p.parsedSkills.slice(0, 2).join(' and ')} aren't just resume padding — they're battle scars. Let me in and I promise this event won't be the same without me. I didn't come all this way to stand outside. You need someone who can ${p.parsedSkills[0] || 'deliver results'}, and that's exactly what I bring to the table. Give me five minutes inside and I'll prove it.`,
+      pitchTone: TONES[idx % TONES.length],
+      keyArguments: [
+        p.parsedSkills[0] || 'deep expertise',
+        `${p.yearsExperience} years of ${p.industry} experience`,
+        p.uniqueValue || `${p.title} at ${p.company}`,
+      ],
+      generatedAt: new Date().toISOString(),
+    }));
+  }
+
   async function generatePitches() {
     setGenerating(true);
     try {
@@ -29,11 +45,15 @@ export default function PitchesPage() {
         body: JSON.stringify({ profiles: state.enrichedProfiles }),
       });
       const data = await res.json();
-      if (data.pitches) {
+      if (data.pitches && data.pitches.length > 0) {
         dispatch({ type: 'SET_PITCHES', payload: data.pitches });
+      } else {
+        // API returned no pitches — use fallback
+        dispatch({ type: 'SET_PITCHES', payload: createFallbackPitches() });
       }
     } catch (e) {
       console.error('Failed to generate pitches:', e);
+      dispatch({ type: 'SET_PITCHES', payload: createFallbackPitches() });
     }
     setGenerating(false);
   }
