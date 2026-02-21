@@ -50,9 +50,17 @@ export default function VenuePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold gradient-text">The Venue</h1>
-          <p className="text-white/40 mt-1">Configure the space and the DJ</p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push('/guest-list')}
+            className="px-3 py-1.5 bg-white/5 text-white/40 rounded-full hover:bg-white/10 transition-colors text-sm"
+          >
+            ← Back
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold gradient-text">The Venue</h1>
+            <p className="text-white/40 mt-1">Configure the space and the DJ</p>
+          </div>
         </div>
         <button
           onClick={startParty}
@@ -155,7 +163,7 @@ export default function VenuePage() {
             <input
               type="range"
               min={2}
-              max={10}
+              max={25}
               value={dj.rounds}
               onChange={(e) => setDj({ ...dj, rounds: parseInt(e.target.value) })}
               className="w-full mt-1 accent-golden"

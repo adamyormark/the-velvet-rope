@@ -62,11 +62,15 @@ export default function ProfilesPage() {
     setEnriching(false);
   }
 
+  // Limit to first 2 for demo purposes
+  const DEMO_LIMIT = 2;
   const profiles = state.enrichedProfiles.length > 0
-    ? state.enrichedProfiles
+    ? state.enrichedProfiles.slice(0, DEMO_LIMIT)
     : [];
 
   function goToPitches() {
+    // Only pass limited profiles forward for demo
+    dispatch({ type: 'SET_ENRICHED_PROFILES', payload: profiles });
     dispatch({ type: 'SET_STAGE', payload: 'pitches' });
     router.push('/pitches');
   }
@@ -76,14 +80,22 @@ export default function ProfilesPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold gradient-text">Dossiers</h1>
-          <p className="text-white/40 mt-1">
-            {enriching
-              ? 'Building profiles with AI...'
-              : `${profiles.length} applicants in the queue`
-            }
-          </p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push('/')}
+            className="px-3 py-1.5 bg-white/5 text-white/40 rounded-full hover:bg-white/10 transition-colors text-sm"
+          >
+            ← Back
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold gradient-text">Dossiers</h1>
+            <p className="text-white/40 mt-1">
+              {enriching
+                ? 'Building profiles with AI...'
+                : `${profiles.length} applicants in the queue`
+              }
+            </p>
+          </div>
         </div>
         {profiles.length > 0 && (
           <button

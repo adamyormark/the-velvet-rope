@@ -52,11 +52,19 @@ export default function GuestListPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold gradient-text">The List</h1>
-          <p className="text-white/40 mt-1">
-            {capacity} of {ranked.length} applicants will enter
-          </p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push('/bouncer')}
+            className="px-3 py-1.5 bg-white/5 text-white/40 rounded-full hover:bg-white/10 transition-colors text-sm"
+          >
+            ← Back
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold gradient-text">The List</h1>
+            <p className="text-white/40 mt-1">
+              {capacity} of {ranked.length} applicants will enter
+            </p>
+          </div>
         </div>
         <button
           onClick={goToVenue}

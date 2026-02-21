@@ -111,7 +111,7 @@ Output EXACTLY this JSON structure (no other text):
   "totalRounds": ${djConfig.rounds}
 }
 
-Make positions be numbers between 0 and 1. Group members close together. Be creative and realistic. Include ALL agents in every round's agentStates.`;
+Make positions be numbers between 0 and 1. In round 1, agents should be randomly scattered across the space. Over subsequent rounds, agents should gradually cluster together as groups form. Group members should converge to close positions. Be creative and realistic. Include ALL agents in every round's agentStates.`;
 
     const response = await claude.messages.create({
       model: 'claude-sonnet-4-5-20250929',

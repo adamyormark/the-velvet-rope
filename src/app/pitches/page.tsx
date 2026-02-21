@@ -25,7 +25,7 @@ export default function PitchesPage() {
   function createFallbackPitches() {
     return state.enrichedProfiles.map((p, idx) => ({
       attendeeId: p.id,
-      pitchText: `Look, I know you've got a list, but hear me out. I'm ${p.firstName} ${p.lastName}, and I've spent ${p.yearsExperience} years in ${p.industry}. I built ${p.company} from the ground up. My skills in ${p.parsedSkills.slice(0, 2).join(' and ')} aren't just resume padding — they're battle scars. Let me in and I promise this event won't be the same without me. I didn't come all this way to stand outside. You need someone who can ${p.parsedSkills[0] || 'deliver results'}, and that's exactly what I bring to the table. Give me five minutes inside and I'll prove it.`,
+      pitchText: `I'm ${p.firstName} ${p.lastName}, ${p.yearsExperience} years in ${p.industry}. My ${p.parsedSkills[0] || 'expertise'} isn't resume fluff — it's battle-tested. Let me in and I'll prove this event needs me.`,
       pitchTone: TONES[idx % TONES.length],
       keyArguments: [
         p.parsedSkills[0] || 'deep expertise',
@@ -77,14 +77,22 @@ export default function PitchesPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold gradient-text">The Plea</h1>
-          <p className="text-white/40 mt-1">
-            {generating
-              ? 'Applicants are preparing their pitches...'
-              : `${state.pitches.length} desperate pleas generated`
-            }
-          </p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push('/profiles')}
+            className="px-3 py-1.5 bg-white/5 text-white/40 rounded-full hover:bg-white/10 transition-colors text-sm"
+          >
+            ← Back
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold gradient-text">The Plea</h1>
+            <p className="text-white/40 mt-1">
+              {generating
+                ? 'Applicants are preparing their pitches...'
+                : `${state.pitches.length} desperate pleas generated`
+              }
+            </p>
+          </div>
         </div>
         {state.pitches.length > 0 && (
           <button
