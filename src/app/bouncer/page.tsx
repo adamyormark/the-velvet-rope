@@ -47,22 +47,24 @@ export default function BouncerPage() {
       return;
     }
 
-    // Generate scores for profiles that won't be live-vetted
-    const preRated = allProfiles.slice(LIVE_VET_COUNT);
+    // Generate scores for profiles that won't be live-vetted (batch dispatch)
     const alreadyRated = new Set(state.biometricResults.map((r) => r.attendeeId));
-    for (const p of preRated) {
-      if (alreadyRated.has(p.id)) continue;
-      const preScore = 30 + Math.floor(Math.random() * 55); // 30-84
-      const preResult: BiometricResult = {
-        attendeeId: p.id,
-        snapshots: [],
-        yesnessScore: preScore,
-        peakPositive: (preScore / 100) * 0.8,
-        peakNegative: -((100 - preScore) / 100) * 0.3,
-        engagementLevel: 40 + Math.floor(Math.random() * 40),
-        durationMs: 0,
-      };
-      dispatch({ type: 'ADD_BIOMETRIC_RESULT', payload: preResult });
+    const preRatedResults: BiometricResult[] = allProfiles.slice(LIVE_VET_COUNT)
+      .filter((p) => !alreadyRated.has(p.id))
+      .map((p) => {
+        const preScore = 30 + Math.floor(Math.random() * 55); // 30-84
+        return {
+          attendeeId: p.id,
+          snapshots: [],
+          yesnessScore: preScore,
+          peakPositive: (preScore / 100) * 0.8,
+          peakNegative: -((100 - preScore) / 100) * 0.3,
+          engagementLevel: 40 + Math.floor(Math.random() * 40),
+          durationMs: 0,
+        };
+      });
+    if (preRatedResults.length > 0) {
+      dispatch({ type: 'SET_BIOMETRIC_RESULTS', payload: [...state.biometricResults, ...preRatedResults] });
     }
 
     loadFaceApi();
