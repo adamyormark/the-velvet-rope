@@ -40,11 +40,31 @@ export default function BouncerPage() {
   const profiles = allProfiles.slice(0, LIVE_VET_COUNT); // Only these get live vetting
   const pitches = state.pitches;
 
+  // Pre-rate the non-live profiles immediately on mount
   useEffect(() => {
     if (allProfiles.length === 0 || pitches.length === 0) {
       router.push('/');
       return;
     }
+
+    // Generate scores for profiles that won't be live-vetted
+    const preRated = allProfiles.slice(LIVE_VET_COUNT);
+    const alreadyRated = new Set(state.biometricResults.map((r) => r.attendeeId));
+    for (const p of preRated) {
+      if (alreadyRated.has(p.id)) continue;
+      const preScore = 30 + Math.floor(Math.random() * 55); // 30-84
+      const preResult: BiometricResult = {
+        attendeeId: p.id,
+        snapshots: [],
+        yesnessScore: preScore,
+        peakPositive: (preScore / 100) * 0.8,
+        peakNegative: -((100 - preScore) / 100) * 0.3,
+        engagementLevel: 40 + Math.floor(Math.random() * 40),
+        durationMs: 0,
+      };
+      dispatch({ type: 'ADD_BIOMETRIC_RESULT', payload: preResult });
+    }
+
     loadFaceApi();
     startWebcam();
     return () => {
@@ -229,21 +249,6 @@ export default function BouncerPage() {
       if (index + 1 < profiles.length) {
         setCurrentIndex(index + 1);
       } else {
-        // Generate pre-rated scores for remaining profiles
-        const preRated = allProfiles.slice(LIVE_VET_COUNT);
-        for (const p of preRated) {
-          const preScore = 30 + Math.floor(Math.random() * 55); // 30-84
-          const preResult: BiometricResult = {
-            attendeeId: p.id,
-            snapshots: [],
-            yesnessScore: preScore,
-            peakPositive: (preScore / 100) * 0.8,
-            peakNegative: -((100 - preScore) / 100) * 0.3,
-            engagementLevel: 40 + Math.floor(Math.random() * 40),
-            durationMs: 0,
-          };
-          dispatch({ type: 'ADD_BIOMETRIC_RESULT', payload: preResult });
-        }
         setCompleted(true);
       }
     }, 3000);
