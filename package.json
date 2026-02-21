@@ -23,6 +23,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.15.8",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^25.3.0",
     "@types/papaparse": "^5.5.2",
